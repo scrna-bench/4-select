@@ -49,11 +49,13 @@ if (args$selection_type == "seurat_vst") {
         nfeatures = args$number_selected)
   sel_feats <- VariableFeatures(so)
 } else if (args$selection_type == "scrapper_modelGeneVariances") {
-  require(SingleCellExperiment)
+  #require(SingleCellExperiment)
   require(scrapper)
   #sce <- SingleCellExperiment(list(normalized=m)) # not needed, actually
   gene.var <- modelGeneVariances(m)
-  sel_feats <- chooseHighlyVariableGenes(gene.var$statistics$residuals)
+  hvgs <- chooseHighlyVariableGenes(gene.var$statistics$residuals,
+                                    top = args$number_selected)
+  sel_feats <- rownames(m)[hvgs]
 } else {
   errorCondition("incorrect 'selection_type' specified")
 }
