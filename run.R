@@ -31,6 +31,7 @@ cat("Full command: ", paste0(commandArgs(), collapse = " "), "\n")
 cat("output_dir:", args$output_dir, "\n")
 cat("name:", args$name, "\n")
 cat("selection_type:", args$selection_type, "\n")
+cat("number_selected:", args$number_selected, "\n")
 cat("input_h5:", args$input_h5, "\n")
 cat("cellids:", args$cellids, "\n")
 
@@ -39,6 +40,7 @@ cat("length(cellids):", length(cellids), "\n")
 
 m <- TENxMatrix(args$input_h5, group = "matrix")
 m <- as(m, "dgCMatrix") # read into memory
+cat("dim(m):", dim(m), "\n")
 
 if (args$selection_type == "seurat_vst") {
   require(Seurat)
@@ -55,6 +57,7 @@ if (args$selection_type == "seurat_vst") {
 } else {
   errorCondition("incorrect 'selection_type' specified")
 }
+cat("length(sel_feats):", length(sel_feats), "\n")
 
 output_file <- file.path(args$output_dir, paste0(args$name, "_selected.txt.gz"))
 writeLines(sel_feats, gzfile(output_file))
