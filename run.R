@@ -31,6 +31,7 @@ cat("Full command: ", paste0(commandArgs(), collapse = " "), "\n")
 cat("output_dir:", args$output_dir, "\n")
 cat("name:", args$name, "\n")
 cat("selection_type:", args$selection_type, "\n")
+args$number_selected <- as.integer(args$number_selected)
 cat("number_selected:", args$number_selected, "\n")
 cat("input_h5:", args$input_h5, "\n")
 cat("cellids:", args$cellids, "\n")
@@ -59,6 +60,7 @@ if (args$selection_type == "seurat_vst") {
 } else {
   errorCondition("incorrect 'selection_type' specified")
 }
+
 cat("length(sel_feats):", length(sel_feats), "\n")
 
 output_file <- file.path(args$output_dir, paste0(args$name, "_selected.txt.gz"))
