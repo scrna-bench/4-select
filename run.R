@@ -31,10 +31,6 @@ cat("selection_type:", args$selection_type, "\n")
 args$number_selected <- as.integer(args$number_selected)
 cat("number_selected:", args$number_selected, "\n")
 cat("input_h5:", args$input_h5, "\n")
-cat("cellids:", args$cellids, "\n")
-
-cellids <- readLines(gzfile(args$cellids))
-cat("length(cellids):", length(cellids), "\n")
 
 m <- TENxMatrix(args$input_h5, group = "matrix")
 m <- as(m, "dgCMatrix") # read into memory
