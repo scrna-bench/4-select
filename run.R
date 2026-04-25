@@ -16,9 +16,6 @@ parser$add_argument("--name", dest="name", type="character", required=TRUE,
 parser$add_argument("--normalized.h5", dest="input_h5",
                    type="character", nargs="+", required=TRUE,
                    help="Input: normalized.h5")
-parser$add_argument("--filtered.cellids", dest="cellids",
-                   type="character", nargs="+", required=TRUE,
-                   help="Input: filtered.cellids")
 
 parser$add_argument("--selection_type", dest="selection_type", 
                     type="character", help="Input file")
