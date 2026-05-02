@@ -1,7 +1,9 @@
 #!/usr/bin/env Rscript
 
-library(argparse)
-library(HDF5Array)
+suppressPackageStartupMessages({
+  library(argparse)
+  library(HDF5Array)
+})
 
 # Parse command line arguments
 parser <- ArgumentParser(description="OmniBenchmark module")
@@ -56,6 +58,8 @@ if (args$selection_type == "seurat_vst") {
 
 cat("length(sel_feats):", length(sel_feats), "\n")
 
-output_file <- file.path(args$output_dir, paste0(args$name, "_selected.txt.gz"))
-writeLines(sel_feats, gzfile(output_file))
+output_file <- file.path(args$output_dir, paste0(args$name, "_normalized_selected.h5"))
+cat("output_file:", output_file, "\n")
+writeTENxMatrix(m[sel_feats,], output_file, group="matrix")
+file.info(output_file)[,c("size", "ctime")]
 
