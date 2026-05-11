@@ -1,8 +1,9 @@
 #!/usr/bin/env Rscript
 
-library(argparse)
-library(HDF5Array)
-library(anndataR)
+suppressPackageStartupMessages({
+  library(argparse)
+  library(HDF5Array)
+})
 
 # Parse command line arguments
 parser <- ArgumentParser(description="OmniBenchmark module")
@@ -71,21 +72,17 @@ if (args$selection_type == "seurat_vst") {
   })
   sel_feats <- SelectIntegrationFeatures(seurat_list,
                                          nfeatures = args$number_selected)
-} else if (args$selection_type == "scrapper_modelGeneVariances") {
-  require(scrapper)
-  m <- TENxMatrix(args$input_h5, group = "matrix")
-  m <- as(m, "dgCMatrix")
-  cat("dim(m):", dim(m), "\n")
-  gene.var <- modelGeneVariances(m)
-  hvgs <- chooseHighlyVariableGenes(gene.var$statistics$residuals,
-                                    top = args$number_selected)
-  sel_feats <- rownames(m)[hvgs]
 } else {
-  errorCondition("incorrect 'selection_type' specified")
+  stop("incorrect 'selection_type' specified")
 }
 
 cat("length(sel_feats):", length(sel_feats), "\n")
 
-output_file <- file.path(args$output_dir, paste0(args$name, "_selected.txt.gz"))
-writeLines(sel_feats, gzfile(output_file))
+m <- TENxMatrix(args$input_h5, group = "matrix")
+m <- as(m, "dgCMatrix")
+
+output_file <- file.path(args$output_dir, paste0(args$name, "_normalized_selected.h5"))
+cat("output_file:", output_file, "\n")
+writeTENxMatrix(m[sel_feats,], output_file, group="matrix")
+file.info(output_file)[,c("size", "ctime")]
 
