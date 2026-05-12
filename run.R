@@ -18,7 +18,8 @@ parser$add_argument("--name", dest="name", type="character", required=TRUE,
 parser$add_argument("--normalized.h5", dest="input_h5",
                    type="character", nargs="+", required=TRUE,
                    help="Input: normalized.h5")
-
+parser$add_argument("--rawdata.h5ad", dest="rawdata_h5ad", 
+                   type="character", nargs = "+", required=FALSE, help="input file")
 parser$add_argument("--selection_type", dest="selection_type", 
                     type="character", help="Input file")
 parser$add_argument("--number_selected", dest="number_selected", 
