@@ -3,64 +3,58 @@
 suppressPackageStartupMessages({
   library(argparse)
   library(HDF5Array)
+  library(anndataR)
+  library(SingleCellExperiment)
+  library(scry)
 })
 
-# Parse command line arguments
-parser <- ArgumentParser(description="OmniBenchmark module")
+run_select <- function(args) {
+  cellids <- readLines(gzfile(args$filtered_cellids))
 
-# Required by OmniBenchmark
-parser$add_argument("--output_dir", dest="output_dir", type="character", required=TRUE,
-                   help="Output directory for results")
-parser$add_argument("--name", dest="name", type="character", required=TRUE,
-                   help="Module name/identifier")
-
-# Stage-specific inputs
-parser$add_argument("--normalized.h5", dest="input_h5",
-                   type="character", nargs="+", required=TRUE,
-                   help="Input: normalized.h5")
-parser$add_argument("--rawdata.h5ad", dest="rawdata_h5ad", 
-                   type="character", nargs = "+", required=FALSE, help="input file")
-parser$add_argument("--selection_type", dest="selection_type", 
-                    type="character", help="Input file")
-parser$add_argument("--number_selected", dest="number_selected", 
-                    type="character", help="Input file")
-
-args <- parser$parse_args()
-
-cat("Full command: ", paste0(commandArgs(), collapse = " "), "\n")
-cat("output_dir:", args$output_dir, "\n")
-cat("name:", args$name, "\n")
-cat("selection_type:", args$selection_type, "\n")
-args$number_selected <- as.integer(args$number_selected)
-cat("number_selected:", args$number_selected, "\n")
-cat("input_h5:", args$input_h5, "\n")
-
-m <- TENxMatrix(args$input_h5, group = "matrix")
-m <- as(m, "dgCMatrix") # read into memory
-cat("dim(m):", dim(m), "\n")
-
-if (args$selection_type == "seurat_vst") {
-  require(Seurat)
-  so <- CreateSeuratObject(counts = m, assay = "normalized")
-  so <- FindVariableFeatures(so, selection.method = "vst", 
-        nfeatures = args$number_selected)
-  sel_feats <- VariableFeatures(so)
-} else if (args$selection_type == "scrapper_modelGeneVariances") {
-  #require(SingleCellExperiment)
-  require(scrapper)
-  #sce <- SingleCellExperiment(list(normalized=m)) # not needed, actually
-  gene.var <- modelGeneVariances(m)
-  hvgs <- chooseHighlyVariableGenes(gene.var$statistics$residuals,
-                                    top = args$number_selected)
-  sel_feats <- rownames(m)[hvgs]
-} else {
-  errorCondition("incorrect 'selection_type' specified")
+  if (args$selection_type == "scry_deviance") {
+    sce <- read_h5ad(args$rawdata_h5ad, as = "SingleCellExperiment")
+    sce <- sce[, cellids]
+    cat(sprintf("  dim(sce) after filtering: %d x %d\n", nrow(sce), ncol(sce)))
+    sce <- devianceFeatureSelection(sce, assay = "counts", nkeep = args$number_selected)
+    rownames(sce)
+  } else {
+    stop("Unsupported selection_type: ", args$selection_type)
+  }
 }
 
-cat("length(sel_feats):", length(sel_feats), "\n")
+main <- function() {
+  parser <- ArgumentParser(description = "4-select: scry-based feature selection")
+  parser$add_argument("--output_dir",       type = "character", required = TRUE, help = "output directory")
+  parser$add_argument("--name",             type = "character", required = TRUE, help = "module name")
+  parser$add_argument("--normalized_h5",    type = "character", dest = "input_h5",     nargs = "+", help = "normalized HDF5 matrix")
+  parser$add_argument("--rawdata_h5ad",     type = "character", nargs = "+",           help = "raw data h5ad")
+  parser$add_argument("--filtered_cellids", type = "character", help = "filtered cell IDs gz")
+  parser$add_argument("--properties_info",  type = "character", help = "properties yaml (unused)")
+  parser$add_argument("--selection_type",   type = "character", help = "selection method")
+  parser$add_argument("--number_selected",  type = "integer",   help = "number of features to select")
+  args <- parser$parse_args()
 
-output_file <- file.path(args$output_dir, paste0(args$name, "_normalized_selected.h5"))
-cat("output_file:", output_file, "\n")
-writeTENxMatrix(m[sel_feats,], output_file, group="matrix")
-file.info(output_file)[,c("size", "ctime")]
+  cat(sprintf("Full command: %s\n", paste(commandArgs(trailingOnly = FALSE), collapse = " ")))
+  for (k in c("output_dir", "name", "input_h5", "rawdata_h5ad",
+              "filtered_cellids", "selection_type", "number_selected")) {
+    cat(sprintf("  %s: %s\n", k, args[[k]]))
+  }
 
+  dir.create(args$output_dir, showWarnings = FALSE, recursive = TRUE)
+
+  sel_feats <- run_select(args)
+  cat("length(sel_feats):", length(sel_feats), "\n")
+
+  m <- TENxMatrix(args$input_h5, group = "matrix")
+  m <- as(m, "dgCMatrix")
+
+  out <- file.path(args$output_dir, paste0(args$name, "_normalized_selected.h5"))
+  cat("output_file:", out, "\n")
+  writeTENxMatrix(m[sel_feats, ], out, group = "matrix")
+  cat(sprintf("  wrote: %s\n", out))
+  print(file.info(out)[, c("size", "ctime")])
+}
+
+if (sys.nframe() == 0L) {
+  main()
+}
